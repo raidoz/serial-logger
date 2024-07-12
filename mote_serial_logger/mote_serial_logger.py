@@ -99,6 +99,7 @@ class SerialLogger(object):
         self.encoder = encoder
         self.serial_timeout = 0.01
         self.logfile = logfile
+        self.set_dtr = False
 
     def run(self):
         while True:
@@ -126,7 +127,10 @@ class SerialLogger(object):
                                                    rtscts=False, dsrdtr=False,
                                                    exclusive=True,
                                                    do_not_open=True)
-                        sp.dtr = 0  # Set initial state to 0
+                        if self.set_dtr:
+                            sp.dtr = 1  # Set initial state to 1
+                        else:
+                            sp.dtr = 0  # Set initial state to 0
                         sp.rts = 0  # Set initial state to 0
                         sp.open()
                         sp.flushInput()
@@ -215,6 +219,7 @@ def main():
     parser = ArgumentParser(description="Serial logger")
     parser.add_argument("port", default="/dev/ttyUSB0", nargs='?')
     parser.add_argument("baud", default=115200, type=int, nargs='?')
+    parser.add_argument("--dtr", action="store_true", help="Set DTR high")
     parser.add_argument("--hdlc", action="store_true")
     parser.add_argument("--nocolor", action="store_true")
     parser.add_argument("--logdir", default=os.environ.get("SERIAL_LOGGER_LOGDIR", os.path.expanduser("~/log")))
@@ -241,7 +246,10 @@ def main():
 
     print("Logging to {}".format(logfile))
 
-    SerialLogger(args.port, args.baud, parser, encoder, logfile).run()
+    logger = SerialLogger(args.port, args.baud, parser, encoder, logfile)
+    if args.dtr:
+        logger.set_dtr = True
+    logger.run()
 
     logfile.close()
 
